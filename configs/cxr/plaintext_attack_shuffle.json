@@ -1,0 +1,36 @@
+{
+  "search_space": {
+    "private": [true],
+    "batch_size": [64],
+    "dataset": ["combined_cxr_cardiomegaly"],
+    "rlc_private_multi_host": [true],
+    "use_shuffle_pairs": [true],
+    "use_adv": [true],
+    "use_mmd_adv": [true],
+    "use_plaintext_attack": [true],
+    "remove_pixel_shuffle": [false],
+    "weight_decay": [ 0],
+    "max_epochs": [1000],
+    "cross_val_seed": [0,1,2],
+    "init_lr": [ 1e-04],
+    "model_name": ["reference_transformer"],
+    "private_kernel_size": [16],
+    "private_depth":[4],
+    "num_layers": [1],
+    "hidden_dim":[ 2048],
+    "num_heads": [8],
+    "dropout": [0],
+    "tuning_metric": ["loss"],
+    "num_workers": [12],
+    "patience": [10],
+    "save_dir": ["snapshot/"],
+    "train": [true],
+    "eval_train": [false],
+    "dev":[true],
+    "test": [true],
+    "image_augmentations": [["scale_2d"]],
+    "gpus":[1]
+  },
+  "available_gpus": [5,6,7]
+
+}

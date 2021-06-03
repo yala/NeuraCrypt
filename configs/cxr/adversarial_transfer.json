@@ -1,0 +1,32 @@
+{
+  "search_space": {
+    "private": [true],
+    "batch_size": [128],
+    "dataset": ["combined_cxr_edema"],
+    "attack_snapshot": ["logs/failed_dnn_attack.results", "none"],
+    "rlc_private_multi_host": [false],
+    "private_switch_encoder": [true],
+    "cross_val_seed":[0,1,2],
+    "weight_decay": [ 0.001],
+    "max_epochs": [25],
+    "init_lr": [ 1e-04],
+    "model_name": ["reference_transformer"],
+    "private_kernel_size": [16],
+    "private_depth":[4],
+    "num_layers": [1],
+    "hidden_dim":[ 2048],
+    "num_heads": [8],
+    "dropout": [0],
+    "tuning_metric": ["loss"],
+    "num_workers": [12],
+    "patience": [10],
+    "save_dir": ["snapshot/"],
+    "train": [true],
+    "dev":[true],
+    "test": [true],
+    "image_augmentations": [["scale_2d"]],
+    "gpus":[1],
+    "class_bal": [true]
+  },
+  "available_gpus": [3,4,5,6,7]
+}
