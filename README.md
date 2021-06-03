@@ -3,6 +3,7 @@
 Implementation of NeuraCrypt, a private encoding scheme based on random deep neural networks. NeuraCrypt encodes raw patient data using a randomly constructed neural network known only to the data-owner, and publishes both the encoded data and associated labels publicly.  From a theoretical perspective, we demonstrate that sampling from a sufficiently rich family of encoding functions offers a well-defined and meaningful notion of privacy against a computationally unboundedadversary with full knowledge of the underlying data-distribution.  We propose to approximate this family of encoding functions through random deep neural networks. Empirically, we demonstrate the robustness of our encoding to a suite of adversarial attacks and show that NeuraCrypt achieves competitive accuracy to non-private baselines on a variety of x-ray tasks.  Moreover, we demonstrate that multiple hospitals, using independent private encoders, can collaborate to train improved x-ray models. Finally, we release a [challenge dataset](https://www.github.com/yala/NeuraCrypt-Challenge) to encourage the development of new attacks on NeuraCrypt.
 
 Full paper is currently being uploaded to arxiv, pdf can also be found [here](https://www.dropbox.com/s/txiay8g30exxhmd/NeuraCrypt.pdf?dl=0).
+Please contact @yala (adamyala@mit.edu) with any questions or post an issue on this github.  
 
 #### NeuraCrypt Architecture
 ![arch](arch.png)
