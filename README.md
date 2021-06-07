@@ -2,6 +2,7 @@
 
 Implementation of [NeuraCrypt](https://arxiv.org/abs/2106.02484), a private encoding scheme based on random deep neural networks. NeuraCrypt encodes raw patient data using a randomly constructed neural network known only to the data-owner, and publishes both the encoded data and associated labels publicly.  From a theoretical perspective, we demonstrate that sampling from a sufficiently rich family of encoding functions offers a well-defined and meaningful notion of privacy against a computationally unboundedadversary with full knowledge of the underlying data-distribution.  We propose to approximate this family of encoding functions through random deep neural networks. Empirically, we demonstrate the robustness of our encoding to a suite of adversarial attacks and show that NeuraCrypt achieves competitive accuracy to non-private baselines on a variety of x-ray tasks.  Moreover, we demonstrate that multiple hospitals, using independent private encoders, can collaborate to train improved x-ray models. Finally, we release a [challenge dataset](https://www.github.com/yala/NeuraCrypt-Challenge) to encourage the development of new attacks on NeuraCrypt.
 
+
 Please contact @yala (adamyala@mit.edu) with any questions or post an issue on this github.  
 
 #### NeuraCrypt Architecture
@@ -70,6 +71,18 @@ python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_tr
 ```
 ```
 python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_transfer_linear.json
+```
+
+## Citing NeuraCrypt
+```
+@misc{yala2021neuracrypt,
+      title={NeuraCrypt: Hiding Private Health Data via Random Neural Networks for Public Training}, 
+      author={Adam Yala and Homa Esfahanizadeh and Rafael G. L. D' Oliveira and Ken R. Duffy and Manya Ghobadi and Tommi S. Jaakkola and Vinod Vaikuntanathan and Regina Barzilay and Muriel Medard},
+      year={2021},
+      eprint={2106.02484},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR}
+}
 ```
 
 ## Acknowledgements
