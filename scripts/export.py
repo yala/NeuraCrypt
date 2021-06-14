@@ -107,6 +107,7 @@ def main(args):
             paths.extend(batch['path'])
 
     json.dump(paths, open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'w'))
+    pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb')) 
 
 if __name__ == '__main__':
     __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
