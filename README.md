@@ -73,6 +73,14 @@ python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_tr
 python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_transfer_linear.json
 ```
 
+## Exporting NeuraCrypt Embeddings
+To easily export NeuraCrypt embeddings for a particular dataset and configuation, you can use the `export.py` script. Here is an example,
+```
+python scripts/export.py --batch_size 128 --dataset stanford_cxr_edema  --gpus 1 --private --private_depth 4 --encoded_data_dir /Mounts/rbg-storage1/users/adamyala/neuracrypt_embeddings/neuracrypt-7
+```
+This will store NPY files in your encoded data dir, as well as a key to specify which file came from which image path.
+
+
 ## Citing NeuraCrypt
 ```
 @misc{yala2021neuracrypt,
