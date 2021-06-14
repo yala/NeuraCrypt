@@ -78,7 +78,7 @@ To easily export NeuraCrypt embeddings for a particular dataset and configuation
 ```
 python scripts/export.py --batch_size 128 --dataset stanford_cxr_edema  --gpus 1 --private --private_depth 4 --encoded_data_dir /Mounts/rbg-storage1/users/adamyala/neuracrypt_embeddings/neuracrypt-7
 ```
-This will store NPY files in your encoded data dir, as well as a key to specify which file came from which image path. To train models or attacks using these precomputed embeddings, add the `--encoded_data_dir /your/data/dir` and `--load_data_from_encoded_dir` flags. Here is an example,
+This will store NPY files in your encoded data dir, as well as a key to specify which file came from which image path. To train prediction models or attacks using these precomputed embeddings, add the `--encoded_data_dir /your/data/dir` and `--load_data_from_encoded_dir` arguments to `main.py`. Here is an example,
 ```
 python scripts/main.py --batch_size 128 --dataset stanford_cxr_edema  --gpus 1 --private --private_depth 4 --encoded_data_dir /Mounts/rbg-storage1/users/adamyala/neuracrypt_embeddings/neuracrypt-7 --train --num_layers 1 --load_data_from_encoded_dir --init_lr 1e-04 --private_kernel_size 16 --class_bal --num_heads 16 --weight_decay 0.001
 ```
