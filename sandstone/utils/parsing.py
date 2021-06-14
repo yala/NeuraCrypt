@@ -148,6 +148,7 @@ def parse_args(args_strings=None):
     parser.add_argument('--rlc_cxr_test', action='store_true', default=False, help='If true, also test on all hosptial versions of this dataset obj')
     parser.add_argument('--rlc_private_multi_host', action='store_true', default=False, help='If true, use diff key for all hospitals, i.e, private collaborative training')
     parser.add_argument('--encoded_data_dir', type=str, default='/Mounts/rbg-storage2/users/adamyala/neuracrypt_embeddings/sandbox', help='dir to store encoded images for export.')
+    parser.add_argument('--load_data_from_encoded_dir', action='store_true', default=False, help='If true, use args.encoded_data_dir to load images')
 
     parser.add_argument('--image_augmentations', nargs='*', default=['scale_2d'], help='List of image-transformations to use [default: ["scale_2d"]] \
                         Usage: "--image_augmentations trans1/arg1=5/arg2=2 trans2 trans3/arg4=val"')
@@ -237,6 +238,10 @@ def parse_args(args_strings=None):
     parser.add_argument('--block_widening_factor', type=int, default=1, help='Factor by which to widen hidden dim.')
     parser.add_argument('--pool_name', type=str, default='GlobalAvgPool', help='Pooling mechanism')
 
+    # logging
+    parser.add_argument('--project_name', type=str, default='sandstone-sandbox', help='Name of project for comet logger')
+    parser.add_argument('--workspace', type=str, default='yala', help='Name of workspace for comet logger')
+    parser.add_argument('--comet_tags', nargs='*', default=[], help="List of tags for comet logger")
 
     # run
     parser = Trainer.add_argparse_args(parser)

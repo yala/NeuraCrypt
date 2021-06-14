@@ -54,9 +54,16 @@ def main(args):
     args.global_rank = trainer.global_rank
     args.local_rank = trainer.local_rank
 
-    tb_logger = pl.loggers.CometLogger()
-    trainer.logger = tb_logger
 
+    comet_key = os.environ.get('COMET_API_KEY')
+    if comet_key is not None:
+        tb_logger = pl.loggers.CometLogger(api_key=comet_key, \
+                                            project_name=args.project_name, \
+                                            experiment_name=result_path_stem,\
+                                            workspace=args.workspace)
+    else:
+        tb_logger = pl.loggers.CometLogger()
+    trainer.logger = tb_logger
 
     if args.get_dataset_stats:
         log.info("\nComputing image mean and std...")
