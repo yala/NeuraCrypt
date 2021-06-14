@@ -19,7 +19,7 @@ LOAD_FAIL_MSG = "Failed to load image: {}\nException: {}"
 
 DEBUG_SIZE=1000
 
-DATASET_ITEM_KEYS = ['ssn', 'pid', 'exam', 'source']
+DATASET_ITEM_KEYS = ['ssn', 'pid', 'exam', 'source', 'path']
 
 class Abstract_Dataset(data.Dataset):
     """

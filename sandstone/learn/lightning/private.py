@@ -57,7 +57,10 @@ class SandstonePrivate(Sandstone):
         return super().step(batch, batch_idx, optimizer_idx, log_key_prefix)
 
     @torch.no_grad()
-    def encode_input(self, tensor, h_source):
+    def encode_input(self, tensor, h_source = None):
+        if h_source is None:
+            return self.secure_encoder_0(tensor)
+
         B = h_source.size()[0]
         if 'transformer' in self.args.model_name :
             shape = [B, 1, 1]
