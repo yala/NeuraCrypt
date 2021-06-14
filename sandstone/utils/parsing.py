@@ -268,6 +268,9 @@ def parse_args(args_strings=None):
     if args.use_adv:
         args.lightning_name = 'adversarial_attack'
         args.tuning_metric = None
+
+        if args.load_data_from_encoded_dir and not (args.use_mmd_adv or args.use_plaintext_attack):
+            raise NotImplementedError("Classifier based adversarial attacks not currenlty supported when loading from cached encodings")
     if args.private_depth < 0:
         args.use_weak_encoder = True
 
