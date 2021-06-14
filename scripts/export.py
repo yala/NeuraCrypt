@@ -22,6 +22,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import _logger as log
 import tqdm
 import numpy as np
+import json
 
 
 #Constants
@@ -75,7 +76,7 @@ def main(args):
     log.info("\nLoading data...")
     train_data, dev_data, test_data = dataset_factory.get_dataset(args, augmentations, test_augmentations)
 
-    train_loader = get_train_dataset_loader(args, train_data, args.batch_size, True)
+    train_loader = get_train_dataset_loader(args, train_data, args.batch_size)
     dev_loader = get_eval_dataset_loader(args, dev_data, args.batch_size, True)
     test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
 
@@ -88,14 +89,13 @@ def main(args):
 
     save_path = args.results_path
 
-    import pdb; pdb.set_trace()
     model = model.cuda()
     paths = []
     idx = 0
     for loader in [train_loader, dev_loader, test_loader]:
         for batch in tqdm.tqdm(loader):
             x = batch['x'].cuda()
-            z = mode.encode_input(x).cpu().numpy()
+            z = model.encode_input(x).cpu().numpy()
 
             if not os.path.exists(args.encoded_data_dir):
                 os.mkdir(args.encoded_data_dir)
