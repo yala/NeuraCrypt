@@ -136,8 +136,8 @@ def parse_args(args_strings=None):
     parser.add_argument('--num_epochs_fine_tune', type=int, default=1, help='Num epochs to finetune model')
     parser.add_argument('--lightning_name', type=str, default='default', help="Name of lightning module to structure training.")
     parser.add_argument('--debug', action='store_true', default=False, help='Set sandstone to debug mode. Load only 1000 rows in metadata, set num workers to 0, max train and dev small.')
-    parser.add_argument('--num_steps_alt_optimization', type=int, default=0, help='Number of steps to train alt model per training main model.')
 
+    parser.add_argument('--compute_conf_intervals', action='store_true', default=False, help='Whether or not to compute comf intervals for AUCs')
     # data
     parser.add_argument('--dataset', default='mnist', help='Name of dataset from dataset factory to use [default: mnist]')
     parser.add_argument('--ref_dataset', default='stanford_cxr_edema', help='Name of dataset from dataset factory to use [default: mnist]')
