@@ -220,7 +220,7 @@ def parse_args(args_strings=None):
     parser.add_argument('--save_dir', type=str, default='snapshot', help='where to dump the model')
     parser.add_argument('--results_path', type=str, default='logs/test.args', help='where to save the result logs')
     parser.add_argument('--project_name', type=str, default='sandstone-sandbox', help='Name of project for comet logger')
-    parser.add_argument('--workspace', type=str, default='username', help='Name of workspace for comet logger')
+    parser.add_argument('--workspace', type=str, default='yala', help='Name of workspace for comet logger')
     parser.add_argument('--comet_tags', nargs='*', default=[], help="List of tags for comet logger")
     parser.add_argument('--data_fraction', type=float, default=1.0, help='Fraction of data to use, i.e 1.0 for all and 0 for none. Used for learning curve analysis.')
 
@@ -237,11 +237,6 @@ def parse_args(args_strings=None):
     # resnet-specific
     parser.add_argument('--block_widening_factor', type=int, default=1, help='Factor by which to widen hidden dim.')
     parser.add_argument('--pool_name', type=str, default='GlobalAvgPool', help='Pooling mechanism')
-
-    # logging
-    parser.add_argument('--project_name', type=str, default='sandstone-sandbox', help='Name of project for comet logger')
-    parser.add_argument('--workspace', type=str, default='yala', help='Name of workspace for comet logger')
-    parser.add_argument('--comet_tags', nargs='*', default=[], help="List of tags for comet logger")
 
     # run
     parser = Trainer.add_argparse_args(parser)

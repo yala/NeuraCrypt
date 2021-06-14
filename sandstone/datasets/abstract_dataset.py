@@ -56,12 +56,12 @@ class Abstract_Dataset(data.Dataset):
 
         if args.load_data_from_encoded_dir:
             self.path_to_encoded_path_dict = {}
-            paths_json = json.load(open(open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'r')))
+            paths_json = json.load(open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'r'))
             for idx, path in enumerate(paths_json):
                 npy_path = os.path.join(args.encoded_data_dir, '{}.npy'.format(idx) )
-            self.path_to_encoded_path_dict[path] = npy_path
+                self.path_to_encoded_path_dict[path] = npy_path
 
-            self.all_npy_paths = list(self.path_to_encoded_path_dict[path].values())
+            self.all_npy_paths = list(self.path_to_encoded_path_dict.values())
 
 
         self.dataset = self.create_dataset(split_group, args.img_dir)
@@ -168,9 +168,11 @@ class Abstract_Dataset(data.Dataset):
                 'x': x,
                 'y': sample['y']
                 }
-
             if self.args.load_data_from_encoded_dir:
-                npy_path = self.path_to_encoded_path_dict[sample['path']] if sample['path'] in self.path_to_encoded_path_dict else np.random.choice(self.all_npy_paths)
+                if self.args.use_adv and sample['path'] not in self.path_to_encoded_path_dict:
+                    npy_path = np.random.choice(self.all_npy_paths)
+                else:
+                     npy_path = self.path_to_encoded_path_dict[sample['path']]
                 item['z'] = torch.Tensor( np.load(npy_path))
 
             for key in DATASET_ITEM_KEYS:
