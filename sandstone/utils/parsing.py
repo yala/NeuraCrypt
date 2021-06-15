@@ -149,6 +149,7 @@ def parse_args(args_strings=None):
     parser.add_argument('--rlc_private_multi_host', action='store_true', default=False, help='If true, use diff key for all hospitals, i.e, private collaborative training')
     parser.add_argument('--encoded_data_dir', type=str, default='/Mounts/rbg-storage2/users/adamyala/neuracrypt_embeddings/sandbox', help='dir to store encoded images for export.')
     parser.add_argument('--load_data_from_encoded_dir', action='store_true', default=False, help='If true, use args.encoded_data_dir to load images')
+    parser.add_argument('--test_on_encoded_dir', action='store_true', default=False, help='Test on dataset used to generated encoded dir')
 
     parser.add_argument('--image_augmentations', nargs='*', default=['scale_2d'], help='List of image-transformations to use [default: ["scale_2d"]] \
                         Usage: "--image_augmentations trans1/arg1=5/arg2=2 trans2 trans3/arg4=val"')

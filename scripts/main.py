@@ -131,6 +131,16 @@ def main(args):
             log.info("-------------\nTest {}".format(external_test))
             trainer.test(model, test_dataloaders=ext_test_loader)
 
+    if args.test_on_encoded_dir:
+        encoded_dataset_name = pickle.load(open(os.path.join(args.encoded_data_dir, 'args.p' ), 'rb'))['dataset']
+        _, _, encoded_test_data = dataset_factory.get_dataset_by_name(encoded_dataset_name, args, augmentations, test_augmentations)
+        enc_test_loader = get_eval_dataset_loader(args, encoded_test_data, args.batch_size, False)
+        log.info("-------------\nTest on real encoded{}".format(encoded_dataset_name))
+        model.save_prefix = 'encoded_dir_test_'
+        trainer.test(model, test_dataloaders=enc_test_loader)
+
+
+
 
 
 

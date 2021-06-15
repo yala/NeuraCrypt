@@ -84,7 +84,7 @@ class SandstoneAttack(Sandstone):
             ## Discriminator step
             batch['y'] = batch['source']
             loss_name = 'disc_loss'
-            if not self.args.load_data_from_encoded_dir:
+            if not self.args.load_data_from_encoded_dir or self.save_prefix == 'encoded_dir_test_':
                 ## Real and generated are not aligned if load read data from encoded_dir, can't compute metrics
                 logging_dict.update(self.log_attack_metrics(real, generated, batch['source']))
 
