@@ -28,6 +28,7 @@ import json
 #Constants
 DATE_FORMAT_STR = "%Y-%m-%d:%H-%M-%S"
 
+@torch.no_grad()
 def main(args):
     repo = git.Repo(search_parent_directories=True)
     commit  = repo.head.object
@@ -80,8 +81,9 @@ def main(args):
     dev_loader = get_eval_dataset_loader(args, dev_data, args.batch_size, True)
     test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
 
-    model = lightning.get_lightning_model(args)
+    args.lightning_name = 'adversarial_attack'
 
+    model = lightning.get_lightning_model(args)
     log.info("\nParameters:")
     for attr, value in sorted(args.__dict__.items()):
         if attr not in ['optimizer_state']:
@@ -91,11 +93,13 @@ def main(args):
 
     model = model.cuda()
     paths = []
+    labels = []
     idx = 0
     for loader in [train_loader, dev_loader, test_loader]:
         for batch in tqdm.tqdm(loader):
             x = batch['x'].cuda()
-            z = model.encode_input(x).cpu().numpy()
+            y = batch['y'].cpu().numpy().tolist()
+            z = model.encode_input(x)[-1].cpu().numpy()
 
             if not os.path.exists(args.encoded_data_dir):
                 os.mkdir(args.encoded_data_dir)
@@ -105,8 +109,10 @@ def main(args):
                 idx += 1
                 np.save(npy_path, z[j])
             paths.extend(batch['path'])
+            labels.extend(y)
 
     json.dump(paths, open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'w'))
+    json.dump(labels, open(os.path.join(args.encoded_data_dir, 'labels.json' ), 'w'))
     pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb')) 
 
 if __name__ == '__main__':

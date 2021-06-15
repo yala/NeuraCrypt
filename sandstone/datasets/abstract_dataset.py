@@ -174,6 +174,7 @@ class Abstract_Dataset(data.Dataset):
                 else:
                      npy_path = self.path_to_encoded_path_dict[sample['path']]
                 item['z'] = torch.Tensor( np.load(npy_path))
+                item['z_path'] = npy_path
 
             for key in DATASET_ITEM_KEYS:
                 if key in sample:

@@ -63,9 +63,7 @@ class SandstoneAttack(Sandstone):
             batch['x'], real, generated = self.encode_input_shuffle_pairs(batch['x'], batch['source'])
         else:
 
-            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'])
-            if self.args.load_data_from_encoded_dir:
-                real = batch['z']
+            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'], batch['z'])
 
         batch['class_label'] = batch['y']
 
@@ -115,22 +113,23 @@ class SandstoneAttack(Sandstone):
         generator_opt, _ = model_factory.get_optimizer(self.attack_encoder, self.args)
         return discrim_opt + generator_opt, []
 
-    def encode_input(self, tensor, h_source):
-        B = h_source.size()[0]
+    def encode_input(self, tensor, h_source=None, z=None):
+        B = tensor.size()[0]
+        shape = [B, 1, 1]
 
-        if 'transformer' in self.args.model_name :
-            shape = [B, 1, 1]
-        else:
-            shape = [B, 1, 1, 1]
-        h_source = h_source.view(shape)
         if self.args.attack_from_noise:
             noise_input = self.noise_dist.sample(tensor.size()).to(self.device)
             generated =  self.attack_encoder(noise_input)
         else:
             generated =  self.attack_encoder(tensor)
         with torch.no_grad():
-            real = self.target_encoder(tensor)
-        private = (h_source == 1) * real + (h_source == 0) * generated
+            real = self.target_encoder(tensor) if not self.args.load_data_from_encoded_dir else z
+       
+        if not self.args.load_data_from_encoded_dir and h_source is not None:
+            h_source = h_source.view(shape)
+            private = (h_source == 1) * real + (h_source == 0) * generated 
+        else:
+            private = generated
         return private, real, generated
 
     def encode_input_shuffle_pairs(self, tensor, h_source):
