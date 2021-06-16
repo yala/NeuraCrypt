@@ -98,7 +98,7 @@ def main(args):
         log.info("-------------\nTrain")
         trainer.fit(model, train_dataloader=train_loader, val_dataloaders=dev_loader)
         model_path = trainer.checkpoint_callback.best_model_path
-        if args.distributed_backend != 'ddp' or trainer.global_rank == 0:
+        if (args.distributed_backend != 'ddp' or trainer.global_rank == 0) and not args.use_adv:
             log.info("Best model saved to : {}".format(model_path))
             model = model.load_from_checkpoint(model_path, args=args)
         args.model_path = model_path

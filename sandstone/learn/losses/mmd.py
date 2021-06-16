@@ -57,10 +57,7 @@ def get_mmd_loss(model_output, batch, model, args):
     logging_dict, predictions = OrderedDict(), OrderedDict()
 
     sigmas = torch.nn.Parameter(torch.FloatTensor(SIGMAS), requires_grad=False).to(batch['x'].device)
-    if args.remove_pixel_shuffle:
-        x = batch['x'].reshape( [batch['x'].size()[0], -1])
-    else:
-        x = batch['x'].mean(dim=1)
+    x = batch['x'].reshape( [batch['x'].size()[0], -1]) if args.remove_pixel_shuffle else batch['x'].mean(dim=1)
 
     B, C = x.size()
     if args.load_data_from_encoded_dir:

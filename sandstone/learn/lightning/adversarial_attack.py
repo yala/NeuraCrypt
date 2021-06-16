@@ -54,6 +54,9 @@ class SandstoneAttack(Sandstone):
         for p in self.target_encoder.parameters():
             p.requires_grad = False
 
+        if self.args.load_data_from_encoded_dir:
+            self.target_encoder = None
+
 
     def step(self, batch, batch_idx, optimizer_idx, log_key_prefix = ""):
         if self.args.use_same_dist:
@@ -62,14 +65,15 @@ class SandstoneAttack(Sandstone):
         if self.args.use_shuffle_pairs:
             batch['x'], real, generated = self.encode_input_shuffle_pairs(batch['x'], batch['source'])
         else:
-
-            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'], batch['z'])
+            z = batch['z'] if 'z' in batch else None
+            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'], z)
 
         batch['class_label'] = batch['y']
+        
+        run_discrim_model = not (self.args.use_plaintext_attack or self.args.use_mmd_adv)
+        model_output = self.model(batch['x'], batch=batch) if run_discrim_model else {}
 
-        model_output = self.model(batch['x'], batch=batch)
         logging_dict, predictions_dict = OrderedDict(), OrderedDict()
-
         if 'exam' in batch:
             predictions_dict['exam'] = batch['exam']
 
@@ -124,7 +128,6 @@ class SandstoneAttack(Sandstone):
             generated =  self.attack_encoder(tensor)
         with torch.no_grad():
             real = self.target_encoder(tensor) if not self.args.load_data_from_encoded_dir else z
-       
         if not self.args.load_data_from_encoded_dir and h_source is not None:
             h_source = h_source.view(shape)
             private = (h_source == 1) * real + (h_source == 0) * generated 

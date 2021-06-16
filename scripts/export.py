@@ -90,6 +90,9 @@ def main(args):
             log.info("\t{}={}".format(attr.upper(), value))
 
     save_path = args.results_path
+    
+    print("Model")
+    print(model.attack_encoder)
 
     model = model.cuda()
     paths = []
