@@ -20,11 +20,15 @@ import sandstone.learn.lightning.factory as lightning
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import _logger as log
+import tqdm
+import numpy as np
+import json
 
 
 #Constants
 DATE_FORMAT_STR = "%Y-%m-%d:%H-%M-%S"
 
+@torch.no_grad()
 def main(args):
     repo = git.Repo(search_parent_directories=True)
     commit  = repo.head.object
@@ -54,16 +58,9 @@ def main(args):
     args.global_rank = trainer.global_rank
     args.local_rank = trainer.local_rank
 
-
-    comet_key = os.environ.get('COMET_API_KEY')
-    if comet_key is not None:
-        tb_logger = pl.loggers.CometLogger(api_key=comet_key, \
-                                            project_name=args.project_name, \
-                                            experiment_name=result_path_stem,\
-                                            workspace=args.workspace)
-    else:
-        tb_logger = pl.loggers.CometLogger()
+    tb_logger = pl.loggers.CometLogger()
     trainer.logger = tb_logger
+
 
     if args.get_dataset_stats:
         log.info("\nComputing image mean and std...")
@@ -82,69 +79,44 @@ def main(args):
 
     train_loader = get_train_dataset_loader(args, train_data, args.batch_size)
     dev_loader = get_eval_dataset_loader(args, dev_data, args.batch_size, True)
-    test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, False)
-    eval_train_loader = get_eval_dataset_loader(args, train_data, args.batch_size, False)
+    test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
+
+    args.lightning_name = 'adversarial_attack'
 
     model = lightning.get_lightning_model(args)
-
     log.info("\nParameters:")
     for attr, value in sorted(args.__dict__.items()):
         if attr not in ['optimizer_state']:
             log.info("\t{}={}".format(attr.upper(), value))
 
     save_path = args.results_path
-    log.info("\n")
-    if args.train:
-        log.info("-------------\nTrain")
-        trainer.fit(model, train_dataloader=train_loader, val_dataloaders=dev_loader)
-        model_path = trainer.checkpoint_callback.best_model_path
-        if (args.distributed_backend != 'ddp' or trainer.global_rank == 0) and not args.use_adv:
-            log.info("Best model saved to : {}".format(model_path))
-            model = model.load_from_checkpoint(model_path, args=args)
-        args.model_path = model_path
+    
+    print("Model")
+    print(model.attack_encoder)
 
-    log.info("\n")
-    if args.dev or args.store_hiddens:
-        log.info("-------------\nDev")
-        model.save_prefix = 'dev_'
-        trainer.test(model, test_dataloaders=dev_loader)
-    log.info("\n")
-    if args.test or args.store_hiddens:
-        log.info("-------------\nTest")
-        model.save_prefix = 'test_'
-        trainer.test(model, test_dataloaders=test_loader)
+    model = model.cuda()
+    paths = []
+    labels = []
+    idx = 0
+    for loader in [train_loader, dev_loader, test_loader]:
+        for batch in tqdm.tqdm(loader):
+            x = batch['x'].cuda()
+            y = batch['y'].cpu().numpy().tolist()
+            z = model.encode_input(x)[-1].cpu().numpy()
 
-    if args.private and args.private_switch_encoder:
-        log.info("-------------\nTransfer")
-        model.save_prefix = 'transfer_test_'
-        model.secure_encoder_0 = model.secure_encoder_1
-        trainer.test(model, test_dataloaders=test_loader)
+            if not os.path.exists(args.encoded_data_dir):
+                os.mkdir(args.encoded_data_dir)
 
-    if args.rlc_cxr_test:
-        stems = ['mimic', 'stanford']
-        exper_stem = args.dataset.split('_')[0]
-        for stem in stems:
-            model.save_prefix = 'test_{}'.format(stem)
-            external_test = args.dataset.replace(exper_stem, stem)
-            _, _, exter_test_data = dataset_factory.get_dataset_by_name(external_test, args, augmentations, test_augmentations)
-            ext_test_loader = get_eval_dataset_loader(args, exter_test_data, args.batch_size, False)
-            log.info("-------------\nTest {}".format(external_test))
-            trainer.test(model, test_dataloaders=ext_test_loader)
+            for j in range(len(z)):
+                npy_path = os.path.join(args.encoded_data_dir, '{}.npy'.format(idx) )
+                idx += 1
+                np.save(npy_path, z[j])
+            paths.extend(batch['path'])
+            labels.extend(y)
 
-    if args.test_on_encoded_dir:
-        encoded_dataset_name = pickle.load(open(os.path.join(args.encoded_data_dir, 'args.p' ), 'rb'))['dataset']
-        _, _, encoded_test_data = dataset_factory.get_dataset_by_name(encoded_dataset_name, args, augmentations, test_augmentations)
-        enc_test_loader = get_eval_dataset_loader(args, encoded_test_data, args.batch_size, False)
-        log.info("-------------\nTest on real encoded {}".format(encoded_dataset_name))
-        model.save_prefix = 'encoded_dir_test_'
-        trainer.test(model, test_dataloaders=enc_test_loader)
-
-    if args.store_hiddens or args.eval_train:
-        log.info("---\n Now running Eval on train to store final hiddens for each train sample...")
-        model.save_prefix = 'eval_train_'
-        trainer.test(model, test_dataloaders=eval_train_loader)
-    log.info("Saving args to {}".format(args.results_path))
-    pickle.dump(vars(args), open(args.results_path,'wb'))
+    json.dump(paths, open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'w'))
+    json.dump(labels, open(os.path.join(args.encoded_data_dir, 'labels.json' ), 'w'))
+    pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb')) 
 
 if __name__ == '__main__':
     __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"

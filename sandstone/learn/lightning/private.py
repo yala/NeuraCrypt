@@ -53,11 +53,17 @@ class SandstonePrivate(Sandstone):
         self.exam_to_data = {}
 
     def step(self, batch, batch_idx, optimizer_idx, log_key_prefix = ""):
-        batch['x'] = self.encode_input(batch['x'], batch['source'])
+        if self.args.load_data_from_encoded_dir:
+            batch['x'] = batch['z']
+        else:
+            batch['x'] = self.encode_input(batch['x'], batch['source'])
         return super().step(batch, batch_idx, optimizer_idx, log_key_prefix)
 
     @torch.no_grad()
-    def encode_input(self, tensor, h_source):
+    def encode_input(self, tensor, h_source = None):
+        if h_source is None:
+            return self.secure_encoder_0(tensor)
+
         B = h_source.size()[0]
         if 'transformer' in self.args.model_name :
             shape = [B, 1, 1]
@@ -113,7 +119,7 @@ class PrivateEncoder(nn.Module):
         encoded  = self.mixer(encoded)
 
         ## Shuffle indicies
-        if not self.args.remove_pixel_shuffle:
+        if not self.args.remove_pixel_shuffle and not self.args.load_data_from_encoded_dir:
             shuffled = torch.zeros_like(encoded)
             for i in range(B):
                 idx = torch.randperm(H*W, device=encoded.device)

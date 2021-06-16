@@ -54,6 +54,9 @@ class SandstoneAttack(Sandstone):
         for p in self.target_encoder.parameters():
             p.requires_grad = False
 
+        if self.args.load_data_from_encoded_dir:
+            self.target_encoder = None
+
 
     def step(self, batch, batch_idx, optimizer_idx, log_key_prefix = ""):
         if self.args.use_same_dist:
@@ -62,14 +65,15 @@ class SandstoneAttack(Sandstone):
         if self.args.use_shuffle_pairs:
             batch['x'], real, generated = self.encode_input_shuffle_pairs(batch['x'], batch['source'])
         else:
-            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'])
+            z = batch['z'] if 'z' in batch else None
+            batch['x'], real, generated = self.encode_input(batch['x'], batch['source'], z)
 
         batch['class_label'] = batch['y']
+        
+        run_discrim_model = not (self.args.use_plaintext_attack or self.args.use_mmd_adv)
+        model_output = self.model(batch['x'], batch=batch) if run_discrim_model else {}
 
-        model_output = self.model(batch['x'], batch=batch)
         logging_dict, predictions_dict = OrderedDict(), OrderedDict()
-
-
         if 'exam' in batch:
             predictions_dict['exam'] = batch['exam']
 
@@ -82,7 +86,9 @@ class SandstoneAttack(Sandstone):
             ## Discriminator step
             batch['y'] = batch['source']
             loss_name = 'disc_loss'
-            logging_dict.update(self.log_attack_metrics(real, generated, batch['source']))
+            if not self.args.load_data_from_encoded_dir or self.save_prefix == 'encoded_dir_test_':
+                ## Real and generated are not aligned if load read data from encoded_dir, can't compute metrics
+                logging_dict.update(self.log_attack_metrics(real, generated, batch['source']))
 
         loss_fn_name = 'cross_entropy'
         if self.args.use_mmd_adv:
@@ -111,22 +117,22 @@ class SandstoneAttack(Sandstone):
         generator_opt, _ = model_factory.get_optimizer(self.attack_encoder, self.args)
         return discrim_opt + generator_opt, []
 
-    def encode_input(self, tensor, h_source):
-        B = h_source.size()[0]
+    def encode_input(self, tensor, h_source=None, z=None):
+        B = tensor.size()[0]
+        shape = [B, 1, 1]
 
-        if 'transformer' in self.args.model_name :
-            shape = [B, 1, 1]
-        else:
-            shape = [B, 1, 1, 1]
-        h_source = h_source.view(shape)
         if self.args.attack_from_noise:
             noise_input = self.noise_dist.sample(tensor.size()).to(self.device)
             generated =  self.attack_encoder(noise_input)
         else:
             generated =  self.attack_encoder(tensor)
         with torch.no_grad():
-            real =  self.target_encoder(tensor)
-        private = (h_source == 1) * real + (h_source == 0) * generated
+            real = self.target_encoder(tensor) if not self.args.load_data_from_encoded_dir else z
+        if not self.args.load_data_from_encoded_dir and h_source is not None:
+            h_source = h_source.view(shape)
+            private = (h_source == 1) * real + (h_source == 0) * generated 
+        else:
+            private = generated
         return private, real, generated
 
     def encode_input_shuffle_pairs(self, tensor, h_source):
@@ -199,8 +205,8 @@ class LinearEncoder(nn.Module):
         encoded = self.image_encoder(x)
         B, C, H,W = encoded.size()
         encoded = encoded.view([B, -1, H*W]).transpose(1,2)
-        ## Shuffle indicies
-        if not self.args.remove_pixel_shuffle:
+        ## Shuffle indicies. Skip this for speed if loading data from encoded dir 
+        if not self.args.remove_pixel_shuffle and not self.args.load_data_from_encoded_dir:
             shuffled = torch.zeros_like(encoded)
             for i in range(B):
                 idx = torch.randperm(H*W, device=encoded.device)

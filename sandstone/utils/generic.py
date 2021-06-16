@@ -151,6 +151,9 @@ def get_train_dataset_loader(args, train_data, batch_size):
 
 
 def get_eval_dataset_loader(args, eval_data, batch_size, shuffle):
+    drop_last = False
+    if args.use_adv:
+        drop_last = True
 
     if args.distributed_backend == 'ddp':
         sampler = torch.utils.data.distributed.DistributedSampler(eval_data, shuffle=shuffle, rank=args.global_rank, num_replicas = args.world_size)
@@ -162,7 +165,7 @@ def get_eval_dataset_loader(args, eval_data, batch_size, shuffle):
         num_workers=args.num_workers,
         collate_fn=ignore_None_collate,
         pin_memory=True,
-        drop_last=False,
+        drop_last=True,
         sampler = sampler)
 
     return data_loader

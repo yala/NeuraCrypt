@@ -136,8 +136,8 @@ def parse_args(args_strings=None):
     parser.add_argument('--num_epochs_fine_tune', type=int, default=1, help='Num epochs to finetune model')
     parser.add_argument('--lightning_name', type=str, default='default', help="Name of lightning module to structure training.")
     parser.add_argument('--debug', action='store_true', default=False, help='Set sandstone to debug mode. Load only 1000 rows in metadata, set num workers to 0, max train and dev small.')
-    parser.add_argument('--num_steps_alt_optimization', type=int, default=0, help='Number of steps to train alt model per training main model.')
 
+    parser.add_argument('--compute_conf_intervals', action='store_true', default=False, help='Whether or not to compute comf intervals for AUCs')
     # data
     parser.add_argument('--dataset', default='mnist', help='Name of dataset from dataset factory to use [default: mnist]')
     parser.add_argument('--ref_dataset', default='stanford_cxr_edema', help='Name of dataset from dataset factory to use [default: mnist]')
@@ -147,7 +147,9 @@ def parse_args(args_strings=None):
     parser.add_argument('--private_switch_encoder', action='store_true', default=False, help='Switch private encoders for a final test. Used for transfer learning attack')
     parser.add_argument('--rlc_cxr_test', action='store_true', default=False, help='If true, also test on all hosptial versions of this dataset obj')
     parser.add_argument('--rlc_private_multi_host', action='store_true', default=False, help='If true, use diff key for all hospitals, i.e, private collaborative training')
-
+    parser.add_argument('--encoded_data_dir', type=str, default='/Mounts/rbg-storage2/users/adamyala/neuracrypt_embeddings/sandbox', help='dir to store encoded images for export.')
+    parser.add_argument('--load_data_from_encoded_dir', action='store_true', default=False, help='If true, use args.encoded_data_dir to load images')
+    parser.add_argument('--test_on_encoded_dir', action='store_true', default=False, help='Test on dataset used to generated encoded dir')
 
     parser.add_argument('--image_augmentations', nargs='*', default=['scale_2d'], help='List of image-transformations to use [default: ["scale_2d"]] \
                         Usage: "--image_augmentations trans1/arg1=5/arg2=2 trans2 trans3/arg4=val"')
@@ -214,29 +216,28 @@ def parse_args(args_strings=None):
     parser.add_argument('--patience', type=int, default=10, help='number of epochs without improvement on dev before halving learning rate and reloading best model [default: 5]')
 
     parser.add_argument('--tuning_metric', type=str, default='loss', help='Metric to judge dev set results. Possible options include auc, loss, accuracy [default: loss]')
-    parser.add_argument('--batch_size', type=int, default=32, help='batch size for training [default: 128]')
-    parser.add_argument('--dropout', type=float, default=0.25, help='Amount of dropout to apply on last hidden layer [default: 0.25]')
+    parser.add_argument('--batch_size', type=int, default=128, help='batch size for training [default: 128]')
+    parser.add_argument('--dropout', type=float, default=0.0, help='Amount of dropout to apply on last hidden layer [default: 0.25]')
     parser.add_argument('--save_dir', type=str, default='snapshot', help='where to dump the model')
     parser.add_argument('--results_path', type=str, default='logs/test.args', help='where to save the result logs')
     parser.add_argument('--project_name', type=str, default='sandstone-sandbox', help='Name of project for comet logger')
-    parser.add_argument('--workspace', type=str, default='username', help='Name of workspace for comet logger')
+    parser.add_argument('--workspace', type=str, default='yala', help='Name of workspace for comet logger')
     parser.add_argument('--comet_tags', nargs='*', default=[], help="List of tags for comet logger")
     parser.add_argument('--data_fraction', type=float, default=1.0, help='Fraction of data to use, i.e 1.0 for all and 0 for none. Used for learning curve analysis.')
 
     # Alternative training/testing schemes
     parser.add_argument('--cross_val_seed', type=int, default=0, help="Seed used to generate the partition.")
-    parser.add_argument('--model_name', type=str, default='resnet18', help="Form of model, i.e resnet18, aggregator, revnet, etc.")
+    parser.add_argument('--model_name', type=str, default='reference_transformer', help="Form of model to load from factory, etc.")
     parser.add_argument('--num_layers', type=int, default=3, help="Num layers for transformer based models.")
     parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot to load[default: None]')
     parser.add_argument('--state_dict_path', type=str, default=None, help='filename of model snapshot to load[default: None]')
 
     # transformer
-    parser.add_argument('--hidden_dim', type=int, default=512, help='start hidden dim for transformer')
+    parser.add_argument('--hidden_dim', type=int, default=2048, help='start hidden dim for transformer')
     parser.add_argument('--num_heads', type=int, default=8, help='Num heads for transformer')
     # resnet-specific
     parser.add_argument('--block_widening_factor', type=int, default=1, help='Factor by which to widen hidden dim.')
     parser.add_argument('--pool_name', type=str, default='GlobalAvgPool', help='Pooling mechanism')
-
 
     # run
     parser = Trainer.add_argparse_args(parser)
@@ -268,6 +269,9 @@ def parse_args(args_strings=None):
     if args.use_adv:
         args.lightning_name = 'adversarial_attack'
         args.tuning_metric = None
+
+        if args.load_data_from_encoded_dir and not (args.use_mmd_adv or args.use_plaintext_attack):
+            raise NotImplementedError("Classifier based adversarial attacks not currenlty supported when loading from cached encodings")
     if args.private_depth < 0:
         args.use_weak_encoder = True
 

@@ -32,8 +32,9 @@ def get_accuracy_metrics(logging_dict, args):
             def auc_estimator(emperical_dist):
                 golds, probs = [e[0] for e in emperical_dist], [e[1] for e in emperical_dist]
                 return roc_auc_score(golds, probs, average='samples')
-            auc_low, auc_high = confidence_interval(CONFIDENCE_INTERVAL, NUM_BOOTSTRAP, emperical_dist, auc_estimator)
-            stats_dict['auc_95_CI_low'], stats_dict['auc_95_CI_high'] = auc_low, auc_high
+            if args.compute_conf_intervals:
+                auc_low, auc_high = confidence_interval(CONFIDENCE_INTERVAL, NUM_BOOTSTRAP, emperical_dist, auc_estimator)
+                stats_dict['auc_95_CI_low'], stats_dict['auc_95_CI_high'] = auc_low, auc_high
 
     if args.num_classes >100:
         sorted_pred = np.argsort(probs, axis=1, kind='mergesort')[:, ::-1]

@@ -57,16 +57,17 @@ def get_mmd_loss(model_output, batch, model, args):
     logging_dict, predictions = OrderedDict(), OrderedDict()
 
     sigmas = torch.nn.Parameter(torch.FloatTensor(SIGMAS), requires_grad=False).to(batch['x'].device)
-    if args.remove_pixel_shuffle:
-        x = batch['x'].reshape( [batch['x'].size()[0], -1])
-    else:
-        x = batch['x'].mean(dim=1)
+    x = batch['x'].reshape( [batch['x'].size()[0], -1]) if args.remove_pixel_shuffle else batch['x'].mean(dim=1)
 
     B, C = x.size()
-    is_real = batch['source'].bool().unsqueeze(-1)
-    is_gen = ~ is_real
-    real = torch.masked_select(x, is_real).view([-1, C])
-    gen = torch.masked_select(x, is_gen).view([-1, C])
+    if args.load_data_from_encoded_dir:
+        gen = x
+        real = batch['z'].mean(dim=1) if not args.remove_pixel_shuffle else batch['z'].reshape( [batch['z'].size()[0], -1])
+    else:
+        is_real = batch['source'].bool().unsqueeze(-1)
+        is_gen = ~ is_real
+        real = torch.masked_select(x, is_real).view([-1, C])
+        gen = torch.masked_select(x, is_gen).view([-1, C])
 
     cost = torch.mean(gaussian_kernel(real, real, sigmas))
     cost += torch.mean(gaussian_kernel(gen, gen, sigmas))
