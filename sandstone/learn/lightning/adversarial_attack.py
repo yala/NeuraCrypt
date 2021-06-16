@@ -205,8 +205,8 @@ class LinearEncoder(nn.Module):
         encoded = self.image_encoder(x)
         B, C, H,W = encoded.size()
         encoded = encoded.view([B, -1, H*W]).transpose(1,2)
-        ## Shuffle indicies
-        if not self.args.remove_pixel_shuffle:
+        ## Shuffle indicies. Skip this for speed if loading data from encoded dir 
+        if not self.args.remove_pixel_shuffle and not self.args.load_data_from_encoded_dir:
             shuffled = torch.zeros_like(encoded)
             for i in range(B):
                 idx = torch.randperm(H*W, device=encoded.device)

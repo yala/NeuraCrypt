@@ -119,7 +119,7 @@ class PrivateEncoder(nn.Module):
         encoded  = self.mixer(encoded)
 
         ## Shuffle indicies
-        if not self.args.remove_pixel_shuffle:
+        if not self.args.remove_pixel_shuffle and not self.args.load_data_from_encoded_dir:
             shuffled = torch.zeros_like(encoded)
             for i in range(B):
                 idx = torch.randperm(H*W, device=encoded.device)
