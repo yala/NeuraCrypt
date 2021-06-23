@@ -1,4 +1,5 @@
 import datetime
+import tqdm
 import json
 import os
 import numpy as np
@@ -11,6 +12,7 @@ import random
 from collections import defaultdict
 from torch._six import container_abcs, string_classes, int_classes
 import re
+import pickle
 
 np_str_obj_array_pattern = re.compile(r'[SaUO]')
 
@@ -205,3 +207,32 @@ def concat_all_gather(tensor):
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
     output = torch.cat(tensors_gather, dim=0)
     return output
+
+def get_nearest_neighbor_in_encoded_data( x, data_dir, reduce_mean = False):
+    cached_encoded_path = os.path.join(data_dir, 'image_means.npy')
+    if not os.path.exists( cached_encoded_path):
+        files = os.listdir(data_dir)
+        npy_paths = []
+        all_z = []
+        for file in tqdm.tqdm(files):
+            if not 'npy' in file:
+                continue
+            npy_path = os.path.join(data_dir, file)
+            z = np.load(npy_path)
+            if reduce_mean:
+                z = z.mean(axis=0)
+            npy_paths.append(npy_path)
+            all_z.append(z)
+
+        all_z = np.array( all_z)
+        pickle.dump( (npy_paths, all_z), open(cached_encoded_path,'wb'))
+    else:
+        npy_paths, all_z = pickle.load( open( cached_encoded_path, 'rb')) 
+
+
+    min_dist = None
+    closest_path = None
+    dist_arr = (( all_z - x.reshape([1, x.shape[-1]]) ) **2).mean( axis=1)
+    index = dist_arr.argmin()
+    closest_path = npy_paths[index]
+    return closest_path

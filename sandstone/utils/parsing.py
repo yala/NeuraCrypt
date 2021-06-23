@@ -139,7 +139,7 @@ def parse_args(args_strings=None):
 
     parser.add_argument('--compute_conf_intervals', action='store_true', default=False, help='Whether or not to compute comf intervals for AUCs')
     # data
-    parser.add_argument('--dataset', default='mnist', help='Name of dataset from dataset factory to use [default: mnist]')
+    parser.add_argument('--dataset', default='combined_cxr_edema', help='Name of dataset from dataset factory to use [default: mnist]')
     parser.add_argument('--ref_dataset', default='stanford_cxr_edema', help='Name of dataset from dataset factory to use [default: mnist]')
     parser.add_argument('--private', action='store_true', default=False, help='Whether to use secure encoding scheme')
     parser.add_argument('--private_kernel_size', type=int, default=16, help='Kernel size for private conv layer. Can also be thought of as the patch size as first conv is non-overlapping')
@@ -150,6 +150,10 @@ def parse_args(args_strings=None):
     parser.add_argument('--encoded_data_dir', type=str, default='/Mounts/rbg-storage2/users/adamyala/neuracrypt_embeddings/sandbox', help='dir to store encoded images for export.')
     parser.add_argument('--load_data_from_encoded_dir', action='store_true', default=False, help='If true, use args.encoded_data_dir to load images')
     parser.add_argument('--test_on_encoded_dir', action='store_true', default=False, help='Test on dataset used to generated encoded dir')
+
+    ## Evaluation for challenge
+    parser.add_argument('--submission_dir', type=str, default='/Mounts/rbg-storage2/users/adamyala/neuracrypt_embeddings/demo_submission', help='dir to store encoded images for export.')
+
 
     parser.add_argument('--image_augmentations', nargs='*', default=['scale_2d'], help='List of image-transformations to use [default: ["scale_2d"]] \
                         Usage: "--image_augmentations trans1/arg1=5/arg2=2 trans2 trans3/arg4=val"')

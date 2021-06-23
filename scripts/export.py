@@ -95,9 +95,9 @@ def main(args):
     print(model.attack_encoder)
 
     model = model.cuda()
-    paths = []
-    labels = []
-    idx = 0
+    paths = {}
+    stanford_labels, mimic_labels = [], []
+    stanford_idx, mimic_idx = 0, 0
     for loader in [train_loader, dev_loader, test_loader]:
         for batch in tqdm.tqdm(loader):
             x = batch['x'].cuda()
@@ -106,17 +106,48 @@ def main(args):
 
             if not os.path.exists(args.encoded_data_dir):
                 os.mkdir(args.encoded_data_dir)
+            if not os.path.exists(os.path.join(args.encoded_data_dir, 'mimic')):
+                os.mkdir(os.path.join(args.encoded_data_dir, 'mimic'))
+            if not os.path.exists(os.path.join(args.encoded_data_dir, 'chexpert')):
+                os.mkdir(os.path.join(args.encoded_data_dir, 'chexpert'))
+
 
             for j in range(len(z)):
-                npy_path = os.path.join(args.encoded_data_dir, '{}.npy'.format(idx) )
-                idx += 1
-                np.save(npy_path, z[j])
-            paths.extend(batch['path'])
-            labels.extend(y)
+                path = batch['path'][j]
+                is_mimic = 'mimic' in path
+                if is_mimic:
+                    npy_dir = os.path.join(args.encoded_data_dir, 'mimic')
+                    npy_path = os.path.join(npy_dir, '{}.npy'.format(mimic_idx) )
+                    mimic_labels.append(batch['y'][j].item())
+                    mimic_idx += 1
+                else:
+                    npy_dir = os.path.join(args.encoded_data_dir, 'chexpert')
+                    npy_path = os.path.join(npy_dir, '{}.npy'.format(stanford_idx) )
+                    stanford_labels.append(batch['y'][j].item())
+                    stanford_idx += 1
 
-    json.dump(paths, open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'w'))
-    json.dump(labels, open(os.path.join(args.encoded_data_dir, 'labels.json' ), 'w'))
-    pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb')) 
+                np.save(npy_path, z[j])
+                paths[path] = npy_path
+
+    ## Save real paths, args, and model for future eval
+    json.dump(paths, open(os.path.join(args.encoded_data_dir, 'path_dict.json' ), 'w'))
+
+    args.model_path = os.path.join(args.encoded_data_dir, 'model.p')
+    pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb'))
+    torch.save(model, args.model_path)
+
+    # Save shuffled paths and image labels for each cohort
+    mimic_paths = [p for p in paths.keys() if 'mimic' in p]
+    stanford_paths = [p for p in paths.keys() if 'mimic' not in p]
+    np.random.shuffle(mimic_paths)
+    np.random.shuffle(stanford_paths)
+    json.dump(mimic_paths, open(os.path.join(os.path.join(args.encoded_data_dir, 'mimic'), 'paths.json' ), 'w'))
+    json.dump(mimic_labels, open(os.path.join(os.path.join(args.encoded_data_dir, 'mimic'), 'labels.json' ), 'w'))
+
+    json.dump(stanford_paths, open(os.path.join(os.path.join(args.encoded_data_dir, 'chexpert'), 'paths.json' ), 'w'))
+    json.dump(stanford_labels, open(os.path.join(os.path.join(args.encoded_data_dir, 'chexpert'), 'labels.json' ), 'w'))
+
+
 
 if __name__ == '__main__':
     __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"

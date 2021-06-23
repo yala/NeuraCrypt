@@ -55,14 +55,13 @@ class Abstract_Dataset(data.Dataset):
 
 
         if args.load_data_from_encoded_dir:
-            self.path_to_encoded_path_dict = {}
-            paths_json = json.load(open(os.path.join(args.encoded_data_dir, 'paths.json' ), 'r'))
-            for idx, path in enumerate(paths_json):
-                npy_path = os.path.join(args.encoded_data_dir, '{}.npy'.format(idx) )
-                self.path_to_encoded_path_dict[path] = npy_path
-
-            self.all_npy_paths = list(self.path_to_encoded_path_dict.values())
-
+            paths_dict_path = os.path.join(args.encoded_data_dir, 'path_dict.json' )
+            if os.path.exists(paths_dict_path):
+                self.path_to_encoded_path_dict = json.load(open(os.path.join(args.encoded_data_dir, 'path_dict.json' ), 'r'))
+                self.all_npy_paths = list(self.path_to_encoded_path_dict.values())
+            else:
+                self.path_to_encoded_path_dict = {}
+                self.all_npy_paths = [os.path.join(args.encoded_data_dir,path) for path in os.listdir(args.encoded_data_dir) if '.npy' in path]
 
         self.dataset = self.create_dataset(split_group, args.img_dir)
         if len(self.dataset) == 0:
