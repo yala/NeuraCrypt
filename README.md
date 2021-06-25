@@ -1,60 +1,91 @@
-# NeuraCrypt Challenge
+# NeuraCrypt
 
-Challenge dataset for [NeuraCrypt](https://arxiv.org/abs/2106.02484), a private encoding scheme based on random deep neural networks. 
-NeuraCrypt encodes raw patient data using a randomly constructed neural network known only to the data-owner, and publishes both the encoded data and associated labels publicly. In our paper, we demonstrate the existence of an optimal family of encoding functions that achieves perfect privacy against even a computationally unbounded adversary. However, it is infeasible to leverage this optimal family of encoding functions directly, so we instead approximate it with deep neural networks. We note the proofs in our paper do not extend to our neural network implementation and so we release this challenge the characterize the privacy of our proposed NeuraCrypt architectures. 
-
-Given an NeuraCrypt coded dataset, the challenge is to reidentify the original data or recover the private NeuraCrypt encoder `T`. We note that these notions are interchangeable, as with `T`, an attacker could recover the images with a plaintext attack and vice-versa. We explore the security of NeuraCrypt encodings in two settings, a simplified setting where the attacker has access to the plaintext version of encoded data and a harder real-world setting where the attacker only has access to distributionally matched plaintext data.
-
-All challenges are done using subsets of the [MIMIC-CXR dataset](https://physionet.org/content/mimic-cxr/2.0.0/).  Another version of the challenge will subsets ImageNet (in progress).  For each challenge, we release several versions of encodings to explore how the security of NeuraCrypt varies by architecture.
-
-We release encodings for:
-- Linear Encoder (Easy to break)
-- NeuraCrypt depth 2 - No Shuffle
-- NeuraCrypt depth 2  
-- NeuraCrypt depth 7 (As used in the paper)
-- NeuraCrypt depth 47
-
-We evaluate the security of an encoding via reidentification (reid) accuracy, which is analogous to an effective `k-anonymity`. For our intended clinical use cases, we consider a reid accuracy of <5% (i.e k > 20 for k-anonymity) to provide "good" privacy, an accuracy 5-20% (i.e k in 5-20) to provide "moderate" privacy, an accuracy of >20%  (i.e k < 5) to provide "bad" privacy. An attacker "wins" a challenge if they can show NeuraCrypt-7 or NeuraCrypt-47 obtains "bad" privacy.
-
-The challenges can be downloaded [here](https://tbd.com). The raw MIMIC dataset can be obtained [here](https://physionet.org/content/mimic-cxr/2.0.0/).
-
-### Challenge 1: Reidentifying patients from matching datasets 
-
-In this challenge, the attacker has access to an encoded subset of the MIMIC dataset, the set of image paths (i.e image IDs) that the encoded data come from, as well as the entire raw (i.e plaintext) MIMIC dataset. The attacker may also leverage any external resources, such as the CheXpert dataset, in their attack. The task is to predict which encoded image comes from which source image path.  We compute the accuracy of the matching between the true and predicted image IDs.
-
-While in real world scenarios, an attacker would not have access to matching raw images, this simplified setting offers an informative benchmark in understanding the privacy offered by NeuraCrypt architectures. 
-
-### Baselines
-The MMD attack presented in the [paper](https://arxiv.org/abs/2106.02484) can obtain a >99% accuracy on the linear encodings in this challenge. However, it does not obtain an accuracy >5% on NeuraCrypt-7. See the leaderboards for more details.
-
-The MMD attack was run using `mmd_attacks.sh`.
+Implementation of [NeuraCrypt](https://arxiv.org/abs/2106.02484), a private encoding scheme based on random deep neural networks. NeuraCrypt encodes raw patient data using a randomly constructed neural network known only to the data-owner, and publishes both the encoded data and associated labels publicly.  From a theoretical perspective, we demonstrate that sampling from a sufficiently rich family of encoding functions offers a well-defined and meaningful notion of privacy against a computationally unboundedadversary with full knowledge of the underlying data-distribution.  We propose to approximate this family of encoding functions through random deep neural networks. Empirically, we demonstrate the robustness of our encoding to a suite of adversarial attacks and show that NeuraCrypt achieves competitive accuracy to non-private baselines on a variety of x-ray tasks.  Moreover, we demonstrate that multiple hospitals, using independent private encoders, can collaborate to train improved x-ray models. Finally, we release a [challenge dataset](https://www.github.com/yala/NeuraCrypt-Challenge) to encourage the development of new attacks on NeuraCrypt.
 
 
-### Challenge 2: Identifying T from distributionally matched datasets (Harder but real-world)
+Please contact @yala (adamyala@mit.edu) with any questions or post an issue on this github.  
 
-In this challenge, the attacker has access to an encoded subset of the MIMIC dataset, but does not have access to the plaintext version of those images for any part of the attack.  However, the attacker may use any other subsets of the MIMIC dataset, which are distributionally similar, and any other public X-ray dataset such as CheXpert. The task is to predict the image-encodings for a target subset of the MIMIC-dataset and thus prove that the attacker recovered `T`.  We note that the target subset and released encoded dataset do not overlap. 
-
-We evaluate the attacker's candidate `T'` on the target set of images `A` by whether `T’(x)` has `T(x)` as it’s nearest neighbor (via MSE) in comparison to `{T(x’), x’ in A}`. Since patches may be shuffled, we evaluate the distance between two `z` as the MSE between their average patches which ignores the patch ordering. We compute the accuracy of this matching.
-
-### Baselines
-The MMD attack presented in the [paper](https://arxiv.org/abs/2106.02484) can obtain a >99% accuracy on the linear encodings in this challenge. However, it does not obtain an accuracy >5% on NeuraCrypt-7. See the leaderboards for more details.
-
-The MMD attack was run using `mmd_attacks.sh`.
-
-## Implementation Details
-
-All source code used for NeuraCrypt and the NeuraCrypt challenge are available [here](github.com/yala/NeuraCrypt). The datasets were generated for each setting using `generate_datasets.sh`.  
-
-A sample submission for each setting is shown in the `sample_submission` directory of each challenge folder. These sample submissions were created using `create_challenge_submission.sh` and `scripts/create_submission.py` in the [NeuraCrypt codebase](github.com/yala/NeuraCrypt). Please follow this submission format exactly and email your submission to adamyala@mit.edu when you are ready.
-
-Submissions are evaluated using `scripts/evaluate_submission.py` in the [NeuraCrypt codebase](github.com/yala/NeuraCrypt). 
-Please email adamyala@mit.edu or post an issue if you have any questions. 
-
-## Leaderboards
-In progress. 
+#### NeuraCrypt Architecture
+![arch](arch.png)
+While many NeuraCrypt architectures are possible, we focus on medical imaging tasks, and thus implement our NeuraCrypt encoders as convolutional neural networks. Our encoder architecture is illustrated in the figure above, and consists of convolutional layers with non-overlapping strides, batch normalization, and ReLU non-linearities. To encode positional information into the feature space while hiding spatial structure, we add a random positional embedding for each patch before the final convolutional and ReLU layers and randomly permute the patches at the output independently for each private sample. This results in an unordered set of patch feature vectors for each image. We note that this architecture is closely inspired by the design of patch-embedding modules in Vision Transformer networks.
 
 
-## Citing the NeuraCrypt Challenge
+## Installing Dependencies
+- Install [Conda](https://www.anaconda.com/blog/moving-conda-environments)
+- Build the environment:
+```
+    conda env create -f environment.yml
+```
+
+## Download datasets
+- Get the [MIMIC-CXR](https://physionet.org/content/mimic-cxr/2.0.0/) dataset
+- Get the [CheXpert](https://stanfordmlgroup.github.io/competitions/chexpert/) dataset
+
+Our splits and processed labels for each dataset (as well as the combined datasets) are in json files in the `data` folder.
+Note, our `json` files rely on absolute paths and so you'll need to update this to reflect where your images are stored.
+
+## Running NeuraCrypt models
+To train a NeuraCrypt for a single dataset, such as `mimic_cxr_edema`, you can use the following command:
+```
+python scripts/main.py --batch_size 64 --dataset mimic_cxr_edema  --train --dev --test --model_name reference_transformer --gpus 1 --rlc_cxr_test --num_layers 1 --num_heads 8 --class_bal --max_epochs 25 --private
+```
+To run a grid search over all datasets and training settings, run:
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/neuracrypt.json
+```
+
+We note that the slowest step in this code is the patch shuffling at the end of our the encoder. Since ViTs (and transformers in general) are invariant to shuffling, you can remove the shuffling for a speed-up with the `--remove_pixel_shuffle` flag. 
+
+## Running ViT baselines
+To train our ViT baseline for a single dataset, you remove the `--private` flag from the above command. In otherwords, run the following:
+```
+python scripts/main.py --batch_size 64 --dataset mimic_cxr_edema  --train --dev --test --model_name reference_transformer --gpus 1 --rlc_cxr_test --num_layers 1 --num_heads 8 --class_bal --max_epochs 25
+```
+To run a grid search over all datasets and training settings, run:
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/baseline_vit.json
+```
+
+
+## Running adversarial attacks
+To run an MMD-based adversarial attack, use the following command:
+```  python scripts/main.py --batch_size 64 --dataset combined_cxr_cardiomegaly  --test --model_name reference_transformer --gpus 1 --rlc_cxr_test --private --train --num_layers 1 --num_heads 8 --class_bal --use_adv --use_same_dist --use_mmd_adv --max_epochs 25```
+Use can run a grid search over attacks with:
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_attack.json.json
+```
+or
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_attack_across_depth.json
+```
+We note that using a `private_depth = -1` leverages a linear encoding.
+
+## Running transfer learning attacks
+To run a transfer learning attack, first run an MMD-based attack add the flag `--results_path attack.results`. Given this result, 
+you can now use the following command for a transfer learning attack:
+```python scripts/main.py --batch_size 64 --dataset combined_cxr_edema --attack_snapshot attack.results  --train --dev --test --private_switch_encoder --model_name reference_transformer --gpus 1 --num_layers 1 --num_heads 8 --class_bal --max_epochs 25```
+
+To run a grid search over transfer learning attacks, you can use:
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_transfer.json.json
+```
+```
+python scripts/dispatcher.py --experiment_config_path configs/cxr/adversarial_transfer_linear.json
+```
+
+## Exporting NeuraCrypt Embeddings
+To easily export NeuraCrypt embeddings for a particular dataset and configuation, you can use the `export.py` script. Here is an example,
+```
+python scripts/export.py --batch_size 128 --dataset stanford_cxr_edema  --gpus 1 --private --private_depth 4 --encoded_data_dir /Mounts/rbg-storage1/users/adamyala/neuracrypt_embeddings/neuracrypt-7
+```
+This will store NPY files in your encoded data dir, as well as a key to specify which file came from which image path. To train prediction models or attacks using these precomputed embeddings, add the `--encoded_data_dir /your/data/dir` and `--load_data_from_encoded_dir` arguments to `main.py`. Here is an example,
+```
+python scripts/main.py --batch_size 128 --dataset stanford_cxr_edema  --gpus 1 --private --private_depth 4 --encoded_data_dir /Mounts/rbg-storage1/users/adamyala/neuracrypt_embeddings/neuracrypt-7 --train --num_layers 1 --load_data_from_encoded_dir --init_lr 1e-04 --private_kernel_size 16 --class_bal --num_heads 16 --weight_decay 0.001
+```
+
+
+
+## Citing NeuraCrypt
 ```
 @misc{yala2021neuracrypt,
       title={NeuraCrypt: Hiding Private Health Data via Random Neural Networks for Public Training}, 
@@ -67,8 +98,5 @@ In progress.
 ```
 
 ## Acknowledgements
-We would like to thank Nicholas Carlini for helpful feedback in designing the challenge. 
-
-
-
+We would like to thank @lucidrains, who's [vit library](https://github.com/lucidrains/vit-pytorch) was the basis of the ViT implementation used in our experiments.
 
