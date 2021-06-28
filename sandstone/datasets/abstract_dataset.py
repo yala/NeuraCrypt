@@ -62,6 +62,7 @@ class Abstract_Dataset(data.Dataset):
             else:
                 self.path_to_encoded_path_dict = {}
                 self.all_npy_paths = [os.path.join(args.encoded_data_dir,path) for path in os.listdir(args.encoded_data_dir) if '.npy' in path]
+            self.private_npy_paths = [path for path in self.all_npy_paths if 'private_encoded_dataset' in path]
 
         self.dataset = self.create_dataset(split_group, args.img_dir)
         if len(self.dataset) == 0:
@@ -168,8 +169,13 @@ class Abstract_Dataset(data.Dataset):
                 'y': sample['y']
                 }
             if self.args.load_data_from_encoded_dir:
-                if self.args.use_adv and sample['path'] not in self.path_to_encoded_path_dict:
-                    npy_path = np.random.choice(self.all_npy_paths)
+                if self.args.use_adv:
+                    if self.split_group == 'train':
+                        npy_path = np.random.choice(self.private_npy_paths)
+                    elif sample['path'] not in self.path_to_encoded_path_dict:
+                        npy_path = np.random.choice(self.all_npy_paths)
+                    else:
+                        npy_path = self.path_to_encoded_path_dict[sample['path']]
                 else:
                      npy_path = self.path_to_encoded_path_dict[sample['path']]
                 item['z'] = torch.Tensor( np.load(npy_path))

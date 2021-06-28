@@ -33,6 +33,7 @@ def main(args):
     repo = git.Repo(search_parent_directories=True)
     commit  = repo.head.object
     args.commit = commit.hexsha
+    args.lightning_name = 'adversarial_attack'
     result_path_stem = args.results_path.split("/")[-1].split('.')[0]
     log.info("Sandstone main running from commit: \n\n{}\n{}author: {}, date: {}".format(
         commit.hexsha, commit.message, commit.author, commit.committed_date))
@@ -75,13 +76,15 @@ def main(args):
         args.test_image_augmentations, args.test_tensor_augmentations, args)
     # Load dataset and add dataset specific information to args
     log.info("\nLoading data...")
-    train_data, dev_data, test_data = dataset_factory.get_dataset(args, augmentations, test_augmentations)
+    public_data, _, private_encoded_data = dataset_factory.get_dataset(args, augmentations, test_augmentations)
 
-    train_loader = get_train_dataset_loader(args, train_data, args.batch_size)
-    dev_loader = get_eval_dataset_loader(args, dev_data, args.batch_size, True)
-    test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
+    np.random.shuffle( public_data.dataset)
+    np.random.shuffle( private_encoded_data.dataset)
 
-    args.lightning_name = 'adversarial_attack'
+
+    public_loader = get_train_dataset_loader(args, public_data, args.batch_size)
+    private_loader = get_train_dataset_loader(args, private_encoded_data, args.batch_size)
+
 
     model = lightning.get_lightning_model(args)
     log.info("\nParameters:")
@@ -94,11 +97,13 @@ def main(args):
     print("Model")
     print(model.attack_encoder)
 
+    print("Len Target Dataset: {} \n Len Encoded Dataset: {}".format(len(public_data), len(private_encoded_data)))
+
     model = model.cuda()
     paths = {}
-    stanford_labels, mimic_labels = [], []
-    stanford_idx, mimic_idx = 0, 0
-    for loader in [train_loader, dev_loader, test_loader]:
+    for name, loader in [('challenge_2_target_dataset', public_loader), ('private_encoded_dataset', private_loader)]:
+        idx = 0
+        local_paths = []
         for batch in tqdm.tqdm(loader):
             x = batch['x'].cuda()
             y = batch['y'].cpu().numpy().tolist()
@@ -106,28 +111,21 @@ def main(args):
 
             if not os.path.exists(args.encoded_data_dir):
                 os.mkdir(args.encoded_data_dir)
-            if not os.path.exists(os.path.join(args.encoded_data_dir, 'mimic')):
-                os.mkdir(os.path.join(args.encoded_data_dir, 'mimic'))
-            if not os.path.exists(os.path.join(args.encoded_data_dir, 'chexpert')):
-                os.mkdir(os.path.join(args.encoded_data_dir, 'chexpert'))
-
+            if not os.path.exists(os.path.join(args.encoded_data_dir, name)):
+                os.mkdir(os.path.join(args.encoded_data_dir, name))
 
             for j in range(len(z)):
                 path = batch['path'][j]
-                is_mimic = 'mimic' in path
-                if is_mimic:
-                    npy_dir = os.path.join(args.encoded_data_dir, 'mimic')
-                    npy_path = os.path.join(npy_dir, '{}.npy'.format(mimic_idx) )
-                    mimic_labels.append(batch['y'][j].item())
-                    mimic_idx += 1
-                else:
-                    npy_dir = os.path.join(args.encoded_data_dir, 'chexpert')
-                    npy_path = os.path.join(npy_dir, '{}.npy'.format(stanford_idx) )
-                    stanford_labels.append(batch['y'][j].item())
-                    stanford_idx += 1
 
+                npy_dir = os.path.join(args.encoded_data_dir, name)
+                npy_path = os.path.join(npy_dir, '{}.npy'.format(idx) )
                 np.save(npy_path, z[j])
+                idx += 1
                 paths[path] = npy_path
+                local_paths.append(path)
+
+        np.random.shuffle(local_paths)
+        json.dump(local_paths, open(os.path.join(args.encoded_data_dir, '{}_path_list.json'.format(name) ), 'w'))
 
     ## Save real paths, args, and model for future eval
     json.dump(paths, open(os.path.join(args.encoded_data_dir, 'path_dict.json' ), 'w'))
@@ -136,16 +134,6 @@ def main(args):
     pickle.dump(vars(args), open(os.path.join(args.encoded_data_dir, 'args.p' ), 'wb'))
     torch.save(model, args.model_path)
 
-    # Save shuffled paths and image labels for each cohort
-    mimic_paths = [p for p in paths.keys() if 'mimic' in p]
-    stanford_paths = [p for p in paths.keys() if 'mimic' not in p]
-    np.random.shuffle(mimic_paths)
-    np.random.shuffle(stanford_paths)
-    json.dump(mimic_paths, open(os.path.join(os.path.join(args.encoded_data_dir, 'mimic'), 'paths.json' ), 'w'))
-    json.dump(mimic_labels, open(os.path.join(os.path.join(args.encoded_data_dir, 'mimic'), 'labels.json' ), 'w'))
-
-    json.dump(stanford_paths, open(os.path.join(os.path.join(args.encoded_data_dir, 'chexpert'), 'paths.json' ), 'w'))
-    json.dump(stanford_labels, open(os.path.join(os.path.join(args.encoded_data_dir, 'chexpert'), 'labels.json' ), 'w'))
 
 
 

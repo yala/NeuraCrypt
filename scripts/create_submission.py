@@ -37,6 +37,7 @@ def main(args):
     log.info("Sandstone main running from commit: \n\n{}\n{}author: {}, date: {}".format(
         commit.hexsha, commit.message, commit.author, commit.committed_date))
 
+    args.lightning_name = 'adversarial_attack'
 
 
     log.info("\nLoading data-augmentation scheme...")
@@ -47,7 +48,6 @@ def main(args):
     # Load dataset and add dataset specific information to args
     log.info("\nLoading data...")
 
-    args.lightning_name = 'adversarial_attack'
 
     model = lightning.get_lightning_model(args)
     log.info("\nParameters:")
@@ -74,23 +74,20 @@ def parallel_data_challenge(args, augmentations, test_augmentations, model):
         return
     print("### Prepare parallel data Challenge submission")
     dataset_name = 'stanford_cxr_edema'
-    train_data, dev_data, test_data = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
+    _, _, test_data = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
 
-    train_loader = get_train_dataset_loader(args, train_data, args.batch_size)
-    dev_loader = get_eval_dataset_loader(args, dev_data, args.batch_size, True)
-    test_loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
+    loader = get_eval_dataset_loader(args, test_data, args.batch_size, False)
 
     path_to_pred_npy_path = {}
-    for loader in [train_loader, dev_loader, test_loader]:
-        for batch in tqdm.tqdm(loader):
-            x = batch['x'].cuda()
-            y = batch['y'].cpu().numpy().tolist()
-            z = model.encode_input(x)[-1].mean(dim=1).cpu().numpy()
+    for batch in tqdm.tqdm(loader):
+        x = batch['x'].cuda()
+        y = batch['y'].cpu().numpy().tolist()
+        z = model.encode_input(x)[-1].mean(dim=1).cpu().numpy()
 
-            for j in range(len(z)):
-                path = batch['path'][j]
-                predicted_path = get_nearest_neighbor_in_encoded_data(z[j], os.path.join(args.encoded_data_dir, 'chexpert'), reduce_mean=True)
-                path_to_pred_npy_path[path]= predicted_path
+        for j in range(len(z)):
+            path = batch['path'][j]
+            predicted_path = get_nearest_neighbor_in_encoded_data(z[j], os.path.join(args.encoded_data_dir, 'private_encoded_dataset'), reduce_mean=True)
+            path_to_pred_npy_path[path]= predicted_path
 
     ## Save real paths, args, and model for future eval
     if not os.path.exists(args.submission_dir):
@@ -104,10 +101,10 @@ def real_world_challenge(args, augmentations, test_augmentations, model):
         return
 
     print("### Prepare real world (no-parallel data) Challenge submission")
-    dataset_name = 'mimic_cxr_edema'
+    dataset_name = 'stanford_cxr_edema'
 
-    _, _, test_data = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
-    loader = get_eval_dataset_loader(args, test_data, args.batch_size, True)
+    target_data, _, _ = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
+    loader = get_eval_dataset_loader(args, target_data, args.batch_size, True)
 
     paths = {}
     idx =  0
@@ -118,12 +115,12 @@ def real_world_challenge(args, augmentations, test_augmentations, model):
 
         if not os.path.exists(args.submission_dir):
             os.mkdir(args.submission_dir)
-        if not os.path.exists(os.path.join(args.submission_dir, 'mimic')):
-            os.mkdir(os.path.join(args.submission_dir, 'mimic'))
+        if not os.path.exists(os.path.join(args.submission_dir, 'challenge_2_target_dataset')):
+            os.mkdir(os.path.join(args.submission_dir, 'challenge_2_target_dataset'))
 
         for j in range(len(z)):
             path = batch['path'][j]
-            npy_path = os.path.join(os.path.join(args.submission_dir, 'mimic'), '{}.npy'.format(idx) )
+            npy_path = os.path.join(os.path.join(args.submission_dir, 'challenge_2_target_dataset'), '{}.npy'.format(idx) )
             idx += 1
             np.save(npy_path, z[j])
             paths[npy_path] = path

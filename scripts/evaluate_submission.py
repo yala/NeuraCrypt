@@ -33,6 +33,7 @@ def main(args):
     repo = git.Repo(search_parent_directories=True)
     commit  = repo.head.object
     args.commit = commit.hexsha
+    args.lightning_name = 'adversarial_attack'
     result_path_stem = args.results_path.split("/")[-1].split('.')[0]
     log.info("Sandstone main running from commit: \n\n{}\n{}author: {}, date: {}".format(
         commit.hexsha, commit.message, commit.author, commit.committed_date))
@@ -66,11 +67,11 @@ def evaluate_parallel_data_challenge(args):
 
 def evaluate_real_world_challenge(args, augmentations, test_augmentations):
     print("### Prepare real world (no-parallel data) Challenge submission")
-    dataset_name = 'mimic_cxr_edema'
+    dataset_name = 'stanford_cxr_edema'
 
     npy_path_to_orig_path_submitted  = json.load(open(os.path.join(args.submission_dir, 'out_of_domain_npy_path_to_orig_path_dict.json' ), 'r'))
     orig_paths_submitted = set( npy_path_to_orig_path_submitted.values() )
-    _, _, test_data = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
+    test_data, _, _ = dataset_factory.get_dataset_by_name(dataset_name, args, augmentations, test_augmentations)
 
     test_data.dataset = [d for d in test_data.dataset if d['path'] in orig_paths_submitted]
 
@@ -87,7 +88,7 @@ def evaluate_real_world_challenge(args, augmentations, test_augmentations):
             true_path = batch['path'][j]
             true_npy_path = batch['z_path'][j]
 
-            predicted_npy_path = get_nearest_neighbor_in_encoded_data(z[j], os.path.join(args.submission_dir, 'mimic'), reduce_mean=False)
+            predicted_npy_path = get_nearest_neighbor_in_encoded_data(z[j], os.path.join(args.submission_dir, 'challenge_2_target_dataset'), reduce_mean=False)
             submitted_path = npy_path_to_orig_path_submitted[predicted_npy_path]
             matching.append( submitted_path == true_path )
 
