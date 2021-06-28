@@ -154,6 +154,7 @@ def get_train_dataset_loader(args, train_data, batch_size):
 
 def get_eval_dataset_loader(args, eval_data, batch_size, shuffle):
     drop_last = False
+
     if args.use_adv:
         drop_last = True
 

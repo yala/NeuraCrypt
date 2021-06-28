@@ -32,8 +32,19 @@ class Abstract_Cxr(Abstract_Dataset):
         for row in tqdm.tqdm(self.metadata_json):
             ssn, split, exam = row['pid'], row['split_group'], row['exam']
             split = 'dev' if row['split_group'] == 'validate' else row['split_group']
-            if split != split_group:
-                continue
+
+            ## Use challenge splits for attack mode. Only implemented for CheXpert (i.e Stanford)
+            if self.args.lightning_name == "adversarial_attack" and 'challenge_split' in row:
+                if split_group in ['dev','train']:
+                    if not row['challenge_split'] == 'public':
+                        continue
+                else:
+                    assert split_group == 'test'
+                    if not row['challenge_split'] == 'private-encoded':
+                        continue
+            else:
+                if split != split_group:
+                    continue
 
             if self.check_label(row):
                 label = self.get_label(row)
@@ -77,6 +88,8 @@ class Abstract_Cxr(Abstract_Dataset):
 
 
     def check_label(self, row):
+        if self.args.lightning_name == "adversarial_attack":
+            return True
         return row['label_dict'][self.task] in ["1.0", "0.0"] or ( 'No Finding' in row['label_dict'] and row['label_dict']['No Finding'] == "1.0")
 
     @staticmethod
